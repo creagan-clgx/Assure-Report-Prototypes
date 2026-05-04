@@ -1,0 +1,449 @@
+import React, { useState, useMemo } from 'react';
+import { 
+  Layout, 
+  Filter, 
+  MoreVertical,
+  Download,
+  RefreshCw,
+  ChevronDown,
+  Search,
+  User as UserIcon,
+  ShieldAlert,
+  ArrowUpRight,
+  ArrowDownRight,
+  Maximize2
+} from 'lucide-react';
+
+const LookerDashboard = () => {
+  // State for Filters
+  const [period, setPeriod] = useState('Yesterday');
+  const [offset, setOffset] = useState('Prior Day');
+  const [selectedUser, setSelectedUser] = useState('Empty');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
+
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    setTimeout(() => setIsRefreshing(false), 800);
+  };
+
+  const users = [
+    "Sally Agent (45467)", 
+    "Bob Agent (76484)", 
+    "Marry Agent (37788)", 
+    "Andrii Agent (75751)", 
+    "Empty"
+  ];
+
+  const filteredUsers = users.filter(u => 
+    u.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // --- Logic Wiring ---
+
+  // 1. Determine Period Multiplier (Base is 1 day/Yesterday)
+  const getPeriodMultiplier = () => {
+    switch (period) {
+      case 'Today':
+      case 'Yesterday':
+        return 1;
+      case 'This Month':
+      case 'Last Month':
+        return 30.4;
+      case 'This Year':
+      case 'Last Year':
+      case 'Last 12 Months':
+        return 365.25;
+      default:
+        return 1;
+    }
+  };
+
+  // 2. Determine User Reduction Factor
+  const isUserFiltered = selectedUser !== 'Empty';
+  const userFactor = isUserFiltered ? 0.015 : 1.0;
+  const combinedMultiplier = getPeriodMultiplier() * userFactor;
+
+  // 3. Dynamic KPI Values
+  const kpiData = {
+    totalLogins: Math.floor(2500 * combinedMultiplier),
+    failedLogins: Math.floor(225 * combinedMultiplier),
+    medium: Math.floor(55 * combinedMultiplier),
+    high: Math.floor(15 * combinedMultiplier),
+  };
+
+  // 4. Dynamic Delta Calculation (Triggered by Offset change)
+  const deltaData = useMemo(() => {
+    const generateDelta = () => (Math.random() * 30 - 15).toFixed(2);
+    return {
+      totalLogins: generateDelta(),
+      failedLogins: generateDelta(),
+      medium: generateDelta(),
+      high: generateDelta(),
+    };
+  }, [offset, period, selectedUser]);
+
+  // Helper to render Delta UI
+  const DeltaIndicator = ({ value }) => {
+    const isPositive = parseFloat(value) >= 0;
+    const Icon = isPositive ? ArrowUpRight : ArrowDownRight;
+    const colorClass = isPositive ? 'text-emerald-600 bg-emerald-50' : 'text-rose-600 bg-rose-50';
+    
+    return (
+      <div className={`flex items-center gap-0.5 font-bold text-sm px-2 py-0.5 rounded ${colorClass}`}>
+        <Icon className="w-4 h-4" />
+        {isPositive ? '+' : ''}{value}%
+      </div>
+    );
+  };
+
+  // MFA Challenges Data (Respects User filter, ignores Period/Offset)
+  const mfaData = useMemo(() => Array.from({ length: 30 }, (_, i) => {
+    const isSpike = [4, 11, 18, 25].includes(i); 
+    let med, high;
+    if (isSpike) {
+      med = Math.floor(Math.random() * 10) + 20; 
+      high = Math.floor(Math.random() * 10) + 15;
+    } else {
+      med = Math.floor(Math.random() * 5) + 5; 
+      high = Math.floor(Math.random() * 3) + 2; 
+    }
+    return {
+      day: i + 1,
+      medium: med * userFactor,
+      high: high * userFactor,
+      total: (med + high) * userFactor
+    };
+  }), [userFactor]);
+
+  const maxChartVal = isUserFiltered ? 5 : 60; 
+
+  // Ranking Lists Data
+  const agentRanking = [
+    { name: "John Smith", id: "45902", base: 92 },
+    { name: "Sarah Miller", id: "33129", base: 84 },
+    { name: "Mike Ross", id: "12847", base: 76 },
+    { name: "Elena Gilbert", id: "55401", base: 68 },
+    { name: "David Brent", id: "90210", base: 55 },
+    { name: "Pam Beesly", id: "44201", base: 42 },
+    { name: "Jim Halpert", id: "44202", base: 38 },
+    { name: "Robert California", id: "99812", base: 24 },
+    { name: "Angela Martin", id: "11029", base: 18 },
+    { name: "Kevin Malone", id: "11030", base: 12 },
+  ].map(agent => ({
+    ...agent,
+    val: Math.floor(agent.base * combinedMultiplier)
+  }));
+
+  const officeRanking = [
+    { name: "Downtown Branch", id: "OFF-101", base: 485 },
+    { name: "Westside Hub", id: "OFF-202", base: 420 },
+    { name: "North Plains", id: "OFF-303", base: 380 },
+    { name: "East Regional", id: "OFF-404", base: 310 },
+    { name: "Central Tower", id: "OFF-505", base: 245 },
+    { name: "South Wharf", id: "OFF-606", base: 190 },
+    { name: "Lakeside Site", id: "OFF-707", base: 155 },
+    { name: "Industrial Park", id: "OFF-808", base: 110 },
+    { name: "Metro Center", id: "OFF-909", base: 85 },
+    { name: "Portside Office", id: "OFF-000", base: 52 },
+  ].map(office => ({
+    ...office,
+    val: Math.floor(office.base * combinedMultiplier)
+  }));
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col font-sans text-slate-800">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200 h-14 flex items-center justify-between px-4 sticky top-0 z-50">
+        <div className="flex items-center gap-3">
+          <div className="bg-indigo-600 p-1.5 rounded-md shadow-sm">
+            <ShieldAlert className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h1 className="font-semibold text-lg leading-none">
+              {isUserFiltered ? `Audit: ${selectedUser}` : "Authentication & Security Audit"}
+            </h1>
+            <p className="text-[10px] text-gray-400 mt-1 uppercase font-bold tracking-wider">Security Operations Center</p>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={handleRefresh}
+            className={`p-2 rounded-full hover:bg-gray-100 transition-all ${isRefreshing ? 'animate-spin' : ''}`}
+          >
+            <RefreshCw className="w-4 h-4 text-gray-500" />
+          </button>
+          <button className="flex items-center gap-1 px-3 py-1.5 bg-white border border-gray-200 rounded text-sm font-medium hover:bg-gray-50">
+            <Download className="w-4 h-4" /> Export
+          </button>
+          <button className="px-3 py-1.5 bg-indigo-600 text-white rounded text-sm font-medium hover:bg-indigo-700 shadow-sm">
+            Schedule
+          </button>
+        </div>
+      </header>
+
+      {/* Filter Bar */}
+      <div className="bg-white border-b border-gray-200 px-6 py-3 flex flex-wrap gap-6 items-center shadow-sm">
+        <div className="flex items-center gap-2 text-slate-500 mr-2 border-r pr-6 border-gray-100">
+          <Filter className="w-4 h-4" />
+          <span className="text-xs font-bold uppercase tracking-wider">Filters</span>
+        </div>
+        
+        {/* Period Filter */}
+        <div className="relative">
+          <div className="text-[10px] text-gray-400 font-bold uppercase absolute -top-2 left-2 px-1 bg-white z-10">Period</div>
+          <select 
+            value={period}
+            onChange={(e) => setPeriod(e.target.value)}
+            className="appearance-none flex items-center gap-3 px-3 py-2 border border-gray-300 rounded hover:border-indigo-400 transition-colors bg-white min-w-[160px] text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+          >
+            {['Today', 'Yesterday', 'This Month', 'Last Month', 'This Year', 'Last Year', 'Last 12 Months'].map(v => (
+              <option key={v} value={v}>{v}</option>
+            ))}
+          </select>
+          <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 top-3 pointer-events-none" />
+        </div>
+
+        {/* Offset Filter */}
+        <div className="relative">
+          <div className="text-[10px] text-gray-400 font-bold uppercase absolute -top-2 left-2 px-1 bg-white z-10">Offset</div>
+          <select 
+            value={offset}
+            onChange={(e) => setOffset(e.target.value)}
+            className="appearance-none flex items-center gap-3 px-3 py-2 border border-gray-300 rounded hover:border-indigo-400 transition-colors bg-white min-w-[160px] text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+          >
+            {['Prior Day', 'Prior Month', 'Prior Year'].map(v => (
+              <option key={v} value={v}>{v}</option>
+            ))}
+          </select>
+          <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 top-3 pointer-events-none" />
+        </div>
+
+        {/* User Combo Box */}
+        <div className="relative min-w-[240px]">
+          <div className="text-[10px] text-gray-400 font-bold uppercase absolute -top-2 left-2 px-1 bg-white z-10">User</div>
+          <div 
+            className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded bg-white text-sm cursor-pointer hover:border-indigo-400 transition-colors"
+            onClick={() => setShowUserDropdown(!showUserDropdown)}
+          >
+            <UserIcon className="w-4 h-4 text-gray-400" />
+            <span className="flex-1 text-left">{selectedUser}</span>
+            <Search className="w-3.5 h-3.5 text-gray-300" />
+          </div>
+
+          {showUserDropdown && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded shadow-xl z-[100] max-h-60 overflow-y-auto">
+              <div className="p-2 border-b border-gray-50 sticky top-0 bg-white">
+                <input 
+                  type="text" 
+                  autoFocus
+                  placeholder="Search agents..." 
+                  className="w-full text-sm p-1.5 border border-gray-200 rounded focus:outline-none focus:border-indigo-500"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
+              {filteredUsers.map(user => (
+                <div 
+                  key={user}
+                  className="px-4 py-2.5 text-sm hover:bg-indigo-50 cursor-pointer flex items-center justify-between group"
+                  onClick={() => {
+                    setSelectedUser(user);
+                    setShowUserDropdown(false);
+                    setSearchQuery('');
+                  }}
+                >
+                  <span className={user === selectedUser ? 'text-indigo-600 font-semibold' : 'text-gray-700'}>{user}</span>
+                  {user === selectedUser && <div className="w-1.5 h-1.5 rounded-full bg-indigo-600"></div>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="ml-auto flex items-center gap-2">
+           <span className="text-xs text-gray-400 font-medium">Logged in as <b>System Administrator</b></span>
+           <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 text-xs font-bold border-2 border-indigo-200">SA</div>
+        </div>
+      </div>
+
+      {/* Main Canvas */}
+      <main className="p-6 overflow-y-auto flex-1">
+        <div className="max-w-[1400px] mx-auto space-y-6">
+          
+          {/* 2x2 KPI Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Total Logins */}
+            <div className="bg-white border border-gray-200 rounded shadow-sm p-5 flex flex-col justify-between hover:shadow-md transition-shadow">
+              <div className="flex justify-between items-start mb-2">
+                <span className="text-xs font-bold text-gray-500 uppercase tracking-tight">Total Logins</span>
+                <div className="p-1.5 bg-gray-50 rounded">
+                  <Layout className="w-4 h-4 text-gray-400" />
+                </div>
+              </div>
+              <div className="flex items-baseline gap-3">
+                <span className="text-4xl font-bold text-slate-900 tracking-tight">{kpiData.totalLogins.toLocaleString()}</span>
+                <DeltaIndicator value={deltaData.totalLogins} />
+              </div>
+              <div className="mt-4 text-[11px] text-gray-400 font-medium flex items-center gap-1.5 uppercase tracking-wide">
+                <span className="w-1 h-1 rounded-full bg-gray-300"></span>
+                vs. {offset}
+              </div>
+            </div>
+
+            {/* Failed Logins */}
+            <div className="bg-white border border-gray-200 rounded shadow-sm p-5 flex flex-col justify-between hover:shadow-md transition-shadow">
+              <div className="flex justify-between items-start mb-2">
+                <span className="text-xs font-bold text-gray-500 uppercase tracking-tight">Failed Logins</span>
+                <ShieldAlert className="w-4 h-4 text-rose-300" />
+              </div>
+              <div className="flex items-baseline gap-3">
+                <span className="text-4xl font-bold text-slate-900 tracking-tight">{kpiData.failedLogins.toLocaleString()}</span>
+                <DeltaIndicator value={deltaData.failedLogins} />
+              </div>
+              <div className="mt-4 text-[11px] text-gray-400 font-medium flex items-center gap-1.5 uppercase tracking-wide">
+                <span className="w-1 h-1 rounded-full bg-gray-300"></span>
+                vs. {offset}
+              </div>
+            </div>
+
+            {/* Medium Challenges */}
+            <div className="bg-white border border-gray-200 rounded shadow-sm p-5 flex flex-col justify-between hover:shadow-md transition-shadow border-l-4 border-l-orange-200">
+              <div className="flex justify-between items-start mb-2">
+                <span className="text-xs font-bold text-gray-500 uppercase tracking-tight">Medium Challenges</span>
+                <div className="w-2.5 h-2.5 rounded-full bg-orange-200 border border-orange-300"></div>
+              </div>
+              <div className="flex items-baseline gap-3">
+                <span className="text-4xl font-bold text-slate-900 tracking-tight">{kpiData.medium.toLocaleString()}</span>
+                <DeltaIndicator value={deltaData.medium} />
+              </div>
+              <div className="mt-4 text-[11px] text-gray-400 font-medium flex items-center gap-1.5 uppercase tracking-wide">
+                <span className="w-1 h-1 rounded-full bg-gray-300"></span>
+                vs. {offset}
+              </div>
+            </div>
+
+            {/* High Challenges */}
+            <div className="bg-white border border-gray-200 rounded shadow-sm p-5 flex flex-col justify-between hover:shadow-md transition-shadow border-l-4 border-l-red-200">
+              <div className="flex justify-between items-start mb-2">
+                <span className="text-xs font-bold text-gray-500 uppercase tracking-tight">High Challenges</span>
+                <div className="w-2.5 h-2.5 rounded-full bg-red-200 border border-red-300"></div>
+              </div>
+              <div className="flex items-baseline gap-3">
+                <span className="text-4xl font-bold text-slate-900 tracking-tight">{kpiData.high.toLocaleString()}</span>
+                <DeltaIndicator value={deltaData.high} />
+              </div>
+              <div className="mt-4 text-[11px] text-gray-400 font-medium flex items-center gap-1.5 uppercase tracking-wide">
+                <span className="w-1 h-1 rounded-full bg-gray-300"></span>
+                vs. {offset}
+              </div>
+            </div>
+          </div>
+
+          {/* Stacked Column Chart */}
+          <div className="bg-white border border-gray-200 rounded shadow-sm overflow-hidden flex flex-col">
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+              <div className="flex flex-col">
+                <h3 className="text-sm font-semibold text-slate-700">MFA Challenges</h3>
+                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">Rolling 30-Day Audit • {isUserFiltered ? `Individual View: ${selectedUser.split(' ')[0]}` : "Static Security View"}</span>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 border-r border-gray-200 pr-4">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2.5 h-2.5 bg-orange-200 border border-orange-300 rounded-sm"></div>
+                    <span className="text-[10px] font-bold text-gray-500 uppercase">Medium</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2.5 h-2.5 bg-red-200 border border-red-300 rounded-sm"></div>
+                    <span className="text-[10px] font-bold text-gray-500 uppercase">High</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="h-80 w-full p-8 pb-14 flex relative">
+              <div className="absolute left-2 top-1/2 -translate-y-1/2 -rotate-90 text-[9px] font-black text-gray-300 uppercase tracking-[0.2em] whitespace-nowrap">
+                Challenge Volume
+              </div>
+
+              <div className="absolute left-12 inset-y-8 flex flex-col justify-between text-[9px] font-bold text-gray-300 pr-3 border-r border-gray-100 h-full">
+                <span>{maxChartVal}</span>
+                <span>{Math.floor(maxChartVal * 0.75)}</span>
+                <span>{Math.floor(maxChartVal * 0.5)}</span>
+                <span>{Math.floor(maxChartVal * 0.25)}</span>
+                <span className="text-gray-400">0</span>
+              </div>
+              
+              <div className="flex-1 ml-10 flex items-end gap-1 px-1 border-b border-gray-100 h-full">
+                {mfaData.map((d, i) => (
+                  <div key={i} className="flex-1 h-full flex flex-col justify-end group relative min-w-[8px]">
+                    <div className="w-full flex flex-col justify-end group-hover:brightness-105 transition-all cursor-crosshair h-full">
+                      <div 
+                        className="w-full bg-red-200 border-x border-t border-red-300 rounded-t-[1px]"
+                        style={{ height: `${(d.high / maxChartVal) * 100}%` }}
+                      ></div>
+                      <div 
+                        className="w-full bg-orange-200 border-x border-orange-300"
+                        style={{ height: `${(d.medium / maxChartVal) * 100}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Ranking Lists Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pb-12">
+            
+            <div className="bg-white border border-gray-200 rounded shadow-sm flex flex-col">
+              <div className="px-4 py-3 border-b border-gray-100 font-semibold text-sm">Top Agents with Challenges</div>
+              <div className="p-5 space-y-4">
+                {agentRanking.map((agent, i) => (
+                  <div key={i} className="flex flex-col gap-1">
+                    <div className="flex justify-between text-xs font-medium text-gray-600">
+                      <span>{agent.name} <span className="text-gray-400">({agent.id})</span></span>
+                      <span className="font-bold">{agent.val.toLocaleString()}</span>
+                    </div>
+                    <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-indigo-500/80"
+                        style={{ width: `${Math.min(100, (agent.val / (100 * getPeriodMultiplier())) * 100)}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white border border-gray-200 rounded shadow-sm flex flex-col">
+              <div className="px-4 py-3 border-b border-gray-100 font-semibold text-sm">Top Office with Challenges</div>
+              <div className="p-5 space-y-4">
+                {officeRanking.map((office, i) => (
+                  <div key={i} className="flex flex-col gap-1">
+                    <div className="flex justify-between text-xs font-medium text-gray-600">
+                      <span>{office.name} <span className="text-gray-400">({office.id})</span></span>
+                      <span className="font-bold">{office.val.toLocaleString()}</span>
+                    </div>
+                    <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-indigo-400/80"
+                        style={{ width: `${Math.min(100, (office.val / (500 * combinedMultiplier)) * 100)}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default LookerDashboard;
