@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Assure Report Dashboard</title>
+    <title>Assure Report Dashboard Prototype</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        body { margin: 0; background-color: #f8fafc; }
+        body { margin: 0; background-color: #f8fafc; font-family: sans-serif; }
         #root { min-height: 100vh; }
-        /* Prevent layout shift while icons load */
-        i { vertical-align: middle; display: inline-block; }
+        .animate-spin { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
@@ -23,63 +23,288 @@
         const { useState, useMemo, useEffect } = React;
 
         // --- ICON PROXY SYSTEM ---
-        // This makes your <Layout />, <Filter />, etc. work without imports
-        const IconBase = ({ name, ...props }) => {
-            useEffect(() => { lucide.createIcons(); }, []);
-            return <i data-lucide={name} {...props}></i>;
+        // This allows your original <IconName /> tags to work in the browser
+        const Icon = ({ name, className, ...props }) => {
+            useEffect(() => { lucide.createIcons(); }, [name]);
+            return <i data-lucide={name} className={className} {...props}></i>;
         };
 
-        const Layout = (p) => <IconBase name="layout" {...p} />;
-        const Filter = (p) => <IconBase name="filter" {...p} />;
-        const MoreVertical = (p) => <IconBase name="more-vertical" {...p} />;
-        const Download = (p) => <IconBase name="download" {...p} />;
-        const RefreshCw = (p) => <IconBase name="refresh-cw" {...p} />;
-        const ChevronDown = (p) => <IconBase name="chevron-down" {...p} />;
-        const Search = (p) => <IconBase name="search" {...p} />;
-        const User = (p) => <IconBase name="user" {...p} />;
-        const ShieldAlert = (p) => <IconBase name="shield-alert" {...p} />;
-        const ArrowUpRight = (p) => <IconBase name="arrow-up-right" {...p} />;
-        const ArrowDownRight = (p) => <IconBase name="arrow-down-right" {...p} />;
-        const Maximize2 = (p) => <IconBase name="maximize-2" {...p} />;
-        const Calendar = (p) => <IconBase name="calendar" {...p} />;
-        const Activity = (p) => <IconBase name="activity" {...p} />;
-        const ExternalLink = (p) => <IconBase name="external-link" {...p} />;
-        const Table = (p) => <IconBase name="table" {...p} />;
-        const MousePointer2 = (p) => <IconBase name="mouse-pointer-2" {...p} />;
-        const X = (p) => <IconBase name="x" {...p} />;
-        const Users = (p) => <IconBase name="users" {...p} />;
-        const Globe = (p) => <IconBase name="globe" {...p} />;
-        const AlertTriangle = (p) => <IconBase name="alert-triangle" {...p} />;
-        const Zap = (p) => <IconBase name="zap" {...p} />;
-        const MapPin = (p) => <IconBase name="map-pin" {...p} />;
-        const Smartphone = (p) => <IconBase name="smartphone" {...p} />;
-        const Network = (p) => <IconBase name="network" {...p} />;
-        const ListFilter = (p) => <IconBase name="list-filter" {...p} />;
-        // Add this one to fix your specific UserIcon reference
-        const UserIcon = User; 
-        const TableIcon = Table;
+        const Layout = (p) => <Icon name="layout" {...p} />;
+        const Filter = (p) => <Icon name="filter" {...p} />;
+        const MoreVertical = (p) => <Icon name="more-vertical" {...p} />;
+        const Download = (p) => <Icon name="download" {...p} />;
+        const RefreshCw = (p) => <Icon name="refresh-cw" {...p} />;
+        const ChevronDown = (p) => <Icon name="chevron-down" {...p} />;
+        const Search = (p) => <Icon name="search" {...p} />;
+        const UserIcon = (p) => <Icon name="user" {...p} />;
+        const ShieldAlert = (p) => <Icon name="shield-alert" {...p} />;
+        const ArrowUpRight = (p) => <Icon name="arrow-up-right" {...p} />;
+        const ArrowDownRight = (p) => <Icon name="arrow-down-right" {...p} />;
+        const Maximize2 = (p) => <Icon name="maximize-2" {...p} />;
+        const Calendar = (p) => <Icon name="calendar" {...p} />;
+        const Activity = (p) => <Icon name="activity" {...p} />;
+        const ExternalLink = (p) => <Icon name="external-link" {...p} />;
+        const TableIcon = (p) => <Icon name="table" {...p} />;
+        const MousePointer2 = (p) => <Icon name="mouse-pointer-2" {...p} />;
+        const X = (p) => <Icon name="x" {...p} />;
+        const Users = (p) => <Icon name="users" {...p} />;
+        const Globe = (p) => <Icon name="globe" {...p} />;
+        const AlertTriangle = (p) => <Icon name="alert-triangle" {...p} />;
+        const Zap = (p) => <Icon name="zap" {...p} />;
+        const MapPin = (p) => <Icon name="map-pin" {...p} />;
+        const Smartphone = (p) => <Icon name="smartphone" {...p} />;
+        const Network = (p) => <Icon name="network" {...p} />;
+        const ListFilter = (p) => <Icon name="list-filter" {...p} />;
 
-        // ============================================================
-        // PASTE YOUR ENTIRE 600+ LINE CODE BELOW THIS LINE
-        // (Everything from "const LookerDashboard = () => {" 
-        // all the way to the end of that function)
-        // ============================================================
-
+        // --- THE FULL DASHBOARD LOGIC ---
         const LookerDashboard = () => {
-            // [PASTE YOUR 600 LINES HERE]
-            // Ensure you include all your useEffects, useMemos, 
-            // the getSmoothPath function, and the final return ()
-        };
+            const [activeTab, setActiveTab] = useState('Overview');
+            const [period, setPeriod] = useState('Yesterday');
+            const [offset, setOffset] = useState('Prior Day');
+            const [selectedUser, setSelectedUser] = useState('Empty');
+            const [selectedEvent, setSelectedEvent] = useState('Password Login');
+            const [topN, setTopN] = useState(10);
+            const [isRefreshing, setIsRefreshing] = useState(false);
+            const [searchQuery, setSearchQuery] = useState('');
+            const [showUserDropdown, setShowUserDropdown] = useState(false);
+            const [showEventDropdown, setShowEventDropdown] = useState(false);
+            const [hoveredMfa, setHoveredMfa] = useState(null);
+            const [hoveredEventPoint, setHoveredEventPoint] = useState(null);
+            const [drillMenu, setDrillMenu] = useState({ visible: false, x: 0, y: 0, type: '', data: null });
+            const [drillOverlay, setDrillOverlay] = useState({ visible: false, title: '', data: [] });
 
-        // ============================================================
-        // PASTE ENDS HERE
-        // ============================================================
+            const handleRefresh = () => {
+                setIsRefreshing(true);
+                setTimeout(() => setIsRefreshing(false), 800);
+            };
+
+            const closeDrillMenu = () => setDrillMenu({ ...drillMenu, visible: false });
+
+            useEffect(() => {
+                const handleOutsideClick = () => closeDrillMenu();
+                window.addEventListener('click', handleOutsideClick);
+                return () => window.removeEventListener('click', handleOutsideClick);
+            }, [drillMenu]);
+
+            const users = ["Sally Agent (45467)", "Bob Agent (76484)", "Marry Agent (37788)", "Andrii Agent (75751)", "Empty"];
+            const eventTypes = ["Password Login", "Password-less Login", "Password-Less Enroll", "New User Registration", "MFA Registration"];
+            const filteredUsers = users.filter(u => u.toLowerCase().includes(searchQuery.toLowerCase()));
+            const filteredEvents = eventTypes.filter(e => e.toLowerCase().includes(searchQuery.toLowerCase()));
+
+            const getPeriodMultiplier = () => {
+                switch (period) {
+                    case 'Today': case 'Yesterday': return 1;
+                    case 'This Month': case 'Last Month': return 30.4;
+                    case 'This Year': case 'Last Year': case 'Last 12 Months': return 365.25;
+                    default: return 1;
+                }
+            };
+
+            const isUserFiltered = selectedUser !== 'Empty';
+            const userFactor = isUserFiltered ? 0.015 : 1.0;
+            const combinedMultiplier = getPeriodMultiplier() * userFactor;
+
+            const kpiData = {
+                totalLogins: Math.floor(2500 * combinedMultiplier),
+                failedLogins: Math.floor(225 * combinedMultiplier),
+                medium: Math.floor(55 * combinedMultiplier),
+                high: Math.floor(15 * combinedMultiplier),
+            };
+
+            const deltaData = useMemo(() => {
+                const generateDelta = () => (Math.random() * 30 - 15).toFixed(2);
+                return { totalLogins: generateDelta(), failedLogins: generateDelta(), medium: generateDelta(), high: generateDelta() };
+            }, [offset, period, selectedUser]);
+
+            const riskPercentages = useMemo(() => {
+                const seed = period.length + offset.length + (isUserFiltered ? 50 : 0);
+                const factors = [
+                    { label: 'Velocity', base: 25, color: '#f87171' },
+                    { label: 'Location', base: 20, color: '#fb923c' },
+                    { label: 'IP Rep', base: 20, color: '#facc15' },
+                    { label: 'Device', base: 15, color: '#4ade80' },
+                    { label: 'Network', base: 20, color: '#60a5fa' }
+                ];
+                let total = 0;
+                const adjusted = factors.map(f => {
+                    const val = Math.max(5, f.base + (Math.sin(seed + f.base) * 10));
+                    total += val;
+                    return { ...f, val };
+                });
+                return adjusted.map(f => ({ ...f, percent: (f.val / total) * 100 }));
+            }, [period, offset, isUserFiltered]);
+
+            const agentBaseData = [
+                { name: "Sally Agent", id: "45467" }, { name: "Bob Agent", id: "76484" }, { name: "Marry Agent", id: "37788" },
+                { name: "Andrii Agent", id: "75751" }, { name: "John Doe", id: "12903" }, { name: "Jane Smith", id: "88273" }
+            ];
+
+            const riskTableData = useMemo(() => {
+                const geo = agentBaseData.map(a => ({ ...a, dist: `${Math.floor(Math.random() * 2000 + 100)} mi`, count: Math.floor(Math.random() * 5 + 1) })).slice(0, topN);
+                const pass = agentBaseData.map(a => ({ ...a, val: Math.floor(Math.random() * 50 + 5) })).sort((a, b) => b.val - a.val).slice(0, topN);
+                const mfa = agentBaseData.map(a => ({ ...a, val: Math.floor(Math.random() * 20 + 2) })).sort((a, b) => b.val - a.val).slice(0, topN);
+                return { geo, pass, mfa };
+            }, [topN, period, selectedUser]);
+
+            const agentRanking = useMemo(() => [
+                { name: "John Smith", id: "45902", base: 92 },
+                { name: "Sarah Miller", id: "33129", base: 84 },
+                { name: "Mike Ross", id: "12847", base: 76 }
+            ].map(a => ({ ...a, val: Math.floor(a.base * combinedMultiplier) })), [combinedMultiplier]);
+
+            const eventIdx = eventTypes.indexOf(selectedEvent);
+            const eventKpis = useMemo(() => {
+                const current = Math.floor((1500 + (eventIdx * 250)) * combinedMultiplier);
+                const prior = Math.floor((1350 + (eventIdx * 220)) * combinedMultiplier);
+                const delta = prior !== 0 ? (((current - prior) / prior) * 100).toFixed(2) : "0.00";
+                return { current, prior, delta };
+            }, [selectedEvent, combinedMultiplier]);
+
+            const eventLineData = useMemo(() => {
+                const gen = () => Array.from({ length: 12 }, () => Math.floor(Math.random() * 15000) + 5000 + (eventIdx * 1000));
+                return { currentYear: gen(), priorYear: gen() };
+            }, [selectedEvent, selectedUser]);
+
+            const getSmoothPath = (data, width, height) => {
+                if (!data.length) return "";
+                const points = data.map((v, i) => ({ x: (i / (data.length - 1)) * width, y: height - (v / 30000) * height }));
+                return points.reduce((path, point, i, a) => {
+                    if (i === 0) return `M ${point.x},${point.y}`;
+                    const prev = a[i - 1];
+                    const cpsX = prev.x + (point.x - prev.x) / 2;
+                    return `${path} C ${cpsX},${prev.y} ${cpsX},${point.y} ${point.x},${point.y}`;
+                }, "");
+            };
+
+            const handleDrillClick = (e, type, data) => {
+                e.stopPropagation();
+                setDrillMenu({ visible: true, x: e.clientX, y: e.clientY, type, data });
+            };
+
+            const executeDrill = () => {
+                const { type, data } = drillMenu;
+                let title = type === 'MFA_DAY' ? `Agents for Day ${data.day}` : `Agents for ${selectedEvent}`;
+                let mock = [{ name: "Sally Agent", id: "45467", value: 120 }, { name: "Bob Agent", id: "76484", value: 85 }];
+                setDrillOverlay({ visible: true, title, data: mock });
+                closeDrillMenu();
+            };
+
+            // --- SUBCOMPONENTS ---
+            const DrillMenu = () => !drillMenu.visible ? null : (
+                <div className="fixed z-[1000] bg-white border border-gray-200 rounded shadow-2xl py-1 w-48 text-sm" style={{ top: drillMenu.y, left: drillMenu.x }}>
+                    <div className="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase border-b border-gray-50 mb-1">Drill Actions</div>
+                    <button onClick={executeDrill} className="w-full text-left px-3 py-2 hover:bg-indigo-50 flex items-center gap-2"><MousePointer2 className="w-3.5 h-3.5 text-indigo-500" /> Drill into details</button>
+                </div>
+            );
+
+            const DeltaIndicator = ({ value }) => {
+                const isPos = parseFloat(value) >= 0;
+                return (
+                    <div className={`flex items-center gap-0.5 font-bold text-sm px-2 py-0.5 rounded ${isPos ? 'text-emerald-600 bg-emerald-50' : 'text-rose-600 bg-rose-50'}`}>
+                        {isPos ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+                        {isPos ? '+' : ''}{value}%
+                    </div>
+                );
+            };
+
+            const mfaData = useMemo(() => Array.from({ length: 30 }, (_, i) => ({
+                day: i + 1,
+                medium: (Math.random() * 10 + 5) * userFactor,
+                high: (Math.random() * 5 + 2) * userFactor,
+                total: 20 * userFactor
+            })), [userFactor]);
+
+            const maxMfaVal = isUserFiltered ? 5 : 60;
+
+            return (
+                <div className="min-h-screen flex flex-col relative">
+                    <DrillMenu />
+                    {drillOverlay.visible && (
+                        <div className="fixed inset-0 z-[2000] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+                            <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl overflow-hidden">
+                                <div className="px-6 py-4 border-b flex justify-between items-center bg-gray-50">
+                                    <h2 className="font-bold text-lg">{drillOverlay.title}</h2>
+                                    <button onClick={() => setDrillOverlay({ ...drillOverlay, visible: false })}><X className="w-5 h-5" /></button>
+                                </div>
+                                <div className="p-6">
+                                    <table className="w-full text-left"><thead className="border-b text-gray-400 text-xs uppercase font-black"><tr><th className="pb-2">Agent</th><th className="pb-2 text-right">Count</th></tr></thead>
+                                    <tbody>{drillOverlay.data.map((a, i) => <tr key={i} className="border-b"><td className="py-3 font-semibold">{a.name}</td><td className="py-3 text-right font-black text-indigo-600">{a.value}</td></tr>)}</tbody></table>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    <header className="bg-white border-b h-14 flex items-center justify-between px-4 sticky top-0 z-50">
+                        <div className="flex items-center gap-3"><div className="bg-indigo-600 p-1.5 rounded"><ShieldAlert className="w-5 h-5 text-white" /></div><h1 className="font-semibold">{isUserFiltered ? `Audit: ${selectedUser}` : "Authentication Audit"}</h1></div>
+                        <div className="flex items-center gap-2"><button onClick={handleRefresh} className={isRefreshing ? 'animate-spin' : ''}><RefreshCw className="w-4 h-4 text-gray-500" /></button></div>
+                    </header>
+
+                    <div className="bg-white border-b px-6 flex items-center gap-8 h-10">
+                        {['Overview', 'Event', 'Risks'].map(t => <button key={t} onClick={() => setActiveTab(t)} className={`h-full text-xs font-bold uppercase border-b-2 px-1 ${activeTab === t ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-400'}`}>{t}</button>)}
+                    </div>
+
+                    <div className="bg-white border-b px-6 py-3 flex flex-wrap gap-6 items-center shadow-sm">
+                        <div className="flex items-center gap-2 text-slate-500 mr-2 border-r pr-6"><Filter className="w-4 h-4" /><span className="text-xs font-bold uppercase">Filters</span></div>
+                        <select value={period} onChange={e => setPeriod(e.target.value)} className="px-3 py-2 border rounded text-sm"><option value="Yesterday">Yesterday</option><option value="This Month">This Month</option><option value="This Year">This Year</option></select>
+                        <div className="relative min-w-[200px]" onClick={() => setShowUserDropdown(!showUserDropdown)}>
+                            <div className="flex items-center gap-2 px-3 py-2 border rounded bg-white text-sm cursor-pointer"><UserIcon className="w-4 h-4 text-gray-400" />{selectedUser}</div>
+                            {showUserDropdown && <div className="absolute top-full w-full bg-white border rounded shadow-xl z-[100] max-h-48 overflow-y-auto">{users.map(u => <div key={u} className="px-4 py-2 hover:bg-indigo-50 cursor-pointer" onClick={() => setSelectedUser(u)}>{u}</div>)}</div>}
+                        </div>
+                    </div>
+
+                    <main className="p-6 overflow-y-auto flex-1">
+                        <div className="max-w-[1400px] mx-auto space-y-6">
+                            {activeTab === 'Overview' && (
+                                <>
+                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                        <div className="bg-white border rounded shadow-sm p-5 border-l-4 border-l-indigo-500">
+                                            <span className="text-xs font-bold text-gray-500 uppercase">Total Logins</span>
+                                            <div className="flex items-baseline gap-3"><span className="text-3xl font-bold">{kpiData.totalLogins.toLocaleString()}</span><DeltaIndicator value={deltaData.totalLogins} /></div>
+                                        </div>
+                                        <div className="bg-white border rounded shadow-sm p-5 border-l-4 border-l-rose-500">
+                                            <span className="text-xs font-bold text-gray-500 uppercase">Failed Logins</span>
+                                            <div className="flex items-baseline gap-3"><span className="text-3xl font-bold">{kpiData.failedLogins.toLocaleString()}</span><DeltaIndicator value={deltaData.failedLogins} /></div>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-white border rounded shadow-sm p-8 h-80 relative flex items-end">
+                                        <div className="flex-1 flex items-end gap-1 px-4 h-full">
+                                            {mfaData.map((d, i) => (
+                                                <div key={i} className="flex-1 h-full flex flex-col justify-end group cursor-pointer" onClick={e => handleDrillClick(e, 'MFA_DAY', d)}>
+                                                    <div className="w-full bg-red-200 border-t border-red-300" style={{ height: `${(d.high / maxMfaVal) * 100}%` }}></div>
+                                                    <div className="w-full bg-orange-200" style={{ height: `${(d.medium / maxMfaVal) * 100}%` }}></div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+                            {activeTab === 'Event' && (
+                                <div className="bg-white border rounded p-6 h-96 flex flex-col shadow-sm">
+                                    <h3 className="text-sm font-bold uppercase mb-4">12 Month Running Event Trend</h3>
+                                    <div className="flex-1 relative">
+                                        <svg className="w-full h-full overflow-visible" viewBox="0 0 1000 300" preserveAspectRatio="none">
+                                            <path d={getSmoothPath(eventLineData.priorYear, 1000, 300)} fill="none" stroke="#c7d2fe" strokeWidth="3" opacity="0.6" />
+                                            <path d={getSmoothPath(eventLineData.currentYear, 1000, 300)} fill="none" stroke="#4f46e5" strokeWidth="4" />
+                                        </svg>
+                                    </div>
+                                </div>
+                            )}
+                            {activeTab === 'Risks' && (
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <div className="bg-white border rounded p-5 shadow-sm"><h3 className="text-xs font-bold uppercase mb-4">Failed Passwords</h3><table className="w-full text-sm"><tbody>{riskTableData.pass.map((r, i) => <tr key={i} className="border-b"><td className="py-2">{r.name}</td><td className="py-2 text-right font-bold">{r.val}</td></tr>)}</tbody></table></div>
+                                    <div className="bg-white border rounded p-5 shadow-sm col-span-2"><h3 className="text-xs font-bold uppercase mb-4">Logins by City</h3><div className="h-64 bg-blue-50 flex items-center justify-center text-blue-200"><Globe className="w-20 h-20" /></div></div>
+                                </div>
+                            )}
+                        </div>
+                    </main>
+                    <footer className="h-8 bg-white border-t px-6 flex items-center gap-4"><span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">Live Security Feed Enabled</span></footer>
+                </div>
+            );
+        };
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<LookerDashboard />);
-    </script>
-</body>
-</html>
     </script>
 </body>
 </html>
