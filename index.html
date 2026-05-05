@@ -1,639 +1,347 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { 
-  Layout, 
-  Filter, 
-  MoreVertical,
-  Download,
-  RefreshCw,
-  ChevronDown,
-  Search,
-  User as UserIcon,
-  ShieldAlert,
-  ArrowUpRight,
-  ArrowDownRight,
-  Maximize2,
-  Calendar,
-  Activity,
-  ExternalLink,
-  Table as TableIcon,
-  MousePointer2,
-  X,
-  Users,
-  Globe,
-  AlertTriangle,
-  Zap,
-  MapPin,
-  Smartphone,
-  Network,
-  ListFilter
-} from 'lucide-react';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assure Report Prototype</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { margin: 0; font-family: sans-serif; }
+        #root { height: 100vh; }
+        .animate-in { animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
 
-const LookerDashboard = () => {
-  // Navigation State
-  const [activeTab, setActiveTab] = useState('Overview');
+    <script type="text/babel">
+        // Grab React hooks from the global React object
+        const { useState, useMemo, useEffect } = React;
 
-  // State for Filters
-  const [period, setPeriod] = useState('Yesterday');
-  const [offset, setOffset] = useState('Prior Day');
-  const [selectedUser, setSelectedUser] = useState('Empty');
-  const [selectedEvent, setSelectedEvent] = useState('Password Login');
-  const [topN, setTopN] = useState(10);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showUserDropdown, setShowUserDropdown] = useState(false);
-  const [showEventDropdown, setShowEventDropdown] = useState(false);
+        // Helper Component to handle Lucide Icons in the browser
+        const Icon = ({ name, className }) => {
+            useEffect(() => { lucide.createIcons(); }, [name]);
+            return <i data-lucide={name} className={className}></i>;
+        };
 
-  const handleRefresh = () => {
-    setIsRefreshing(true);
-    setTimeout(() => setIsRefreshing(false), 800);
-  };
+        const LookerDashboard = () => {
+          // --- ALL YOUR ORIGINAL STATE ---
+          const [activeTab, setActiveTab] = useState('Overview');
+          const [period, setPeriod] = useState('Yesterday');
+          const [offset, setOffset] = useState('Prior Day');
+          const [selectedUser, setSelectedUser] = useState('Empty');
+          const [selectedEvent, setSelectedEvent] = useState('Password Login');
+          const [topN, setTopN] = useState(10);
+          const [isRefreshing, setIsRefreshing] = useState(false);
+          const [searchQuery, setSearchQuery] = useState('');
+          const [showUserDropdown, setShowUserDropdown] = useState(false);
+          const [showEventDropdown, setShowEventDropdown] = useState(false);
+          const [hoveredMfa, setHoveredMfa] = useState(null);
+          const [hoveredEventPoint, setHoveredEventPoint] = useState(null);
+          const [drillMenu, setDrillMenu] = useState({ visible: false, x: 0, y: 0, type: '', data: null });
+          const [drillOverlay, setDrillOverlay] = useState({ visible: false, title: '', data: [] });
 
-  const closeDrillMenu = () => setDrillMenu({ ...drillMenu, visible: false });
+          const handleRefresh = () => {
+            setIsRefreshing(true);
+            setTimeout(() => setIsRefreshing(false), 800);
+          };
 
-  // Interaction State
-  const [hoveredMfa, setHoveredMfa] = useState(null);
-  const [hoveredEventPoint, setHoveredEventPoint] = useState(null);
-  const [drillMenu, setDrillMenu] = useState({ visible: false, x: 0, y: 0, type: '', data: null });
-  const [drillOverlay, setDrillOverlay] = useState({ visible: false, title: '', data: [] });
+          const closeDrillMenu = () => setDrillMenu({ ...drillMenu, visible: false });
 
-  useEffect(() => {
-    const handleOutsideClick = () => closeDrillMenu();
-    window.addEventListener('click', handleOutsideClick);
-    return () => window.removeEventListener('click', handleOutsideClick);
-  }, [drillMenu]);
+          useEffect(() => {
+            const handleOutsideClick = () => closeDrillMenu();
+            window.addEventListener('click', handleOutsideClick);
+            return () => window.removeEventListener('click', handleOutsideClick);
+          }, [drillMenu]);
 
-  const users = [
-    "Sally Agent (45467)", 
-    "Bob Agent (76484)", 
-    "Marry Agent (37788)", 
-    "Andrii Agent (75751)", 
-    "Empty"
-  ];
+          const users = ["Sally Agent (45467)", "Bob Agent (76484)", "Marry Agent (37788)", "Andrii Agent (75751)", "Empty"];
+          const eventTypes = ["Password Login", "Password-less Login", "Password-Less Enroll", "New User Registration", "MFA Registration"];
 
-  const eventTypes = [
-    "Password Login",
-    "Password-less Login",
-    "Password-Less Enroll",
-    "New User Registration",
-    "MFA Registration"
-  ];
+          const filteredUsers = users.filter(u => u.toLowerCase().includes(searchQuery.toLowerCase()));
+          const filteredEvents = eventTypes.filter(e => e.toLowerCase().includes(searchQuery.toLowerCase()));
 
-  const filteredUsers = users.filter(u => 
-    u.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+          // --- YOUR ORIGINAL LOGIC ---
+          const getPeriodMultiplier = () => {
+            switch (period) {
+              case 'Today':
+              case 'Yesterday': return 1;
+              case 'This Month':
+              case 'Last Month': return 30.4;
+              case 'This Year':
+              case 'Last Year':
+              case 'Last 12 Months': return 365.25;
+              default: return 1;
+            }
+          };
 
-  const filteredEvents = eventTypes.filter(e => 
-    e.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+          const isUserFiltered = selectedUser !== 'Empty';
+          const userFactor = isUserFiltered ? 0.015 : 1.0;
+          const combinedMultiplier = getPeriodMultiplier() * userFactor;
 
-  // --- Logic Wiring ---
+          const kpiData = {
+            totalLogins: Math.floor(2500 * combinedMultiplier),
+            failedLogins: Math.floor(225 * combinedMultiplier),
+            medium: Math.floor(55 * combinedMultiplier),
+            high: Math.floor(15 * combinedMultiplier),
+          };
 
-  const getPeriodMultiplier = () => {
-    switch (period) {
-      case 'Today':
-      case 'Yesterday': return 1;
-      case 'This Month':
-      case 'Last Month': return 30.4;
-      case 'This Year':
-      case 'Last Year':
-      case 'Last 12 Months': return 365.25;
-      default: return 1;
-    }
-  };
+          const deltaData = useMemo(() => {
+            const generateDelta = () => (Math.random() * 30 - 15).toFixed(2);
+            return {
+              totalLogins: generateDelta(),
+              failedLogins: generateDelta(),
+              medium: generateDelta(),
+              high: generateDelta(),
+            };
+          }, [offset, period, selectedUser]);
 
-  const isUserFiltered = selectedUser !== 'Empty';
-  const userFactor = isUserFiltered ? 0.015 : 1.0;
-  const combinedMultiplier = getPeriodMultiplier() * userFactor;
+          const riskPercentages = useMemo(() => {
+            const seed = period.length + offset.length + (isUserFiltered ? 50 : 0);
+            const factors = [
+              { label: 'Velocity', base: 25, color: '#f87171' },
+              { label: 'Location', base: 20, color: '#fb923c' },
+              { label: 'IP Rep', base: 20, color: '#facc15' },
+              { label: 'Device', base: 15, color: '#4ade80' },
+              { label: 'Network', base: 20, color: '#60a5fa' }
+            ];
+            let total = 0;
+            const adjusted = factors.map(f => {
+              const val = Math.max(5, f.base + (Math.sin(seed + f.base) * 10));
+              total += val;
+              return { ...f, val };
+            });
+            return adjusted.map(f => ({ ...f, percent: (f.val / total) * 100 }));
+          }, [period, offset, isUserFiltered]);
 
-  // Overview Data
-  const kpiData = {
-    totalLogins: Math.floor(2500 * combinedMultiplier),
-    failedLogins: Math.floor(225 * combinedMultiplier),
-    medium: Math.floor(55 * combinedMultiplier),
-    high: Math.floor(15 * combinedMultiplier),
-  };
+          const agentBaseData = [
+            { name: "Sally Agent", id: "45467" }, { name: "Bob Agent", id: "76484" }, { name: "Marry Agent", id: "37788" },
+            { name: "Andrii Agent", id: "75751" }, { name: "John Doe", id: "12903" }, { name: "Jane Smith", id: "88273" },
+            { name: "Mike Johnson", id: "55401" }, { name: "Sarah Lee", id: "33219" }, { name: "Kevin Brown", id: "90210" },
+            { name: "Elena Gilbert", id: "22310" }, { name: "Damon Salvatore", id: "22311" }, { name: "Stefan Salvatore", id: "22312" },
+            { name: "Bonnie Bennett", id: "22313" }, { name: "Caroline Forbes", id: "22314" }, { name: "Matt Donovan", id: "22315" },
+            { name: "Tyler Lockwood", id: "22316" }, { name: "Alaric Saltzman", id: "22317" }, { name: "Jeremy Gilbert", id: "22318" },
+            { name: "Klaus Mikaelson", id: "22319" }, { name: "Elijah Mikaelson", id: "22320" }, { name: "Rebekah Mikaelson", id: "22321" },
+            { name: "Hayley Marshall", id: "22322" }, { name: "Marcel Gerard", id: "22323" }, { name: "Davina Claire", id: "22324" },
+            { name: "Vincent Griffith", id: "22325" }
+          ];
 
-  const deltaData = useMemo(() => {
-    const generateDelta = () => (Math.random() * 30 - 15).toFixed(2);
-    return {
-      totalLogins: generateDelta(),
-      failedLogins: generateDelta(),
-      medium: generateDelta(),
-      high: generateDelta(),
-    };
-  }, [offset, period, selectedUser]);
+          const riskTableData = useMemo(() => {
+            const geo = agentBaseData.map((a, i) => ({ ...a, dist: `${Math.floor(Math.random() * 2000 + 100)} mi`, count: Math.floor(Math.random() * 5 + 1) })).slice(0, topN);
+            const pass = agentBaseData.map((a, i) => ({ ...a, val: Math.floor(Math.random() * 50 + 5) })).sort((a, b) => b.val - a.val).slice(0, topN);
+            const mfa = agentBaseData.map((a, i) => ({ ...a, val: Math.floor(Math.random() * 20 + 2) })).sort((a, b) => b.val - a.val).slice(0, topN);
+            return { geo, pass, mfa };
+          }, [topN, period, selectedUser]);
 
-  // Risks Dashboard Data
-  const riskPercentages = useMemo(() => {
-    const seed = period.length + offset.length + (isUserFiltered ? 50 : 0);
-    const factors = [
-      { label: 'Velocity', base: 25, color: '#f87171' },
-      { label: 'Location', base: 20, color: '#fb923c' },
-      { label: 'IP Rep', base: 20, color: '#facc15' },
-      { label: 'Device', base: 15, color: '#4ade80' },
-      { label: 'Network', base: 20, color: '#60a5fa' }
-    ];
-    
-    let total = 0;
-    const adjusted = factors.map(f => {
-      const val = Math.max(5, f.base + (Math.sin(seed + f.base) * 10));
-      total += val;
-      return { ...f, val };
-    });
+          const agentRanking = useMemo(() => [
+            { name: "John Smith", id: "45902", base: 92 },
+            { name: "Sarah Miller", id: "33129", base: 84 },
+            { name: "Mike Ross", id: "12847", base: 76 },
+            { name: "Elena Gilbert", id: "55401", base: 68 },
+            { name: "David Brent", id: "90210", base: 55 },
+          ].map(agent => ({ ...agent, val: Math.floor(agent.base * combinedMultiplier) })), [combinedMultiplier]);
 
-    return adjusted.map(f => ({ ...f, percent: (f.val / total) * 100 }));
-  }, [period, offset, isUserFiltered]);
+          const officeRanking = useMemo(() => [
+            { name: "Downtown Branch", id: "OFF-101", base: 485 },
+            { name: "Westside Hub", id: "OFF-202", base: 420 },
+            { name: "North Plains", id: "OFF-303", base: 380 },
+            { name: "East Regional", id: "OFF-404", base: 310 },
+            { name: "Central Tower", id: "OFF-505", base: 245 },
+          ].map(office => ({ ...office, val: Math.floor(office.base * combinedMultiplier) })), [combinedMultiplier]);
 
-  // Data for Risk Tables
-  const agentBaseData = [
-    { name: "Sally Agent", id: "45467" }, { name: "Bob Agent", id: "76484" }, { name: "Marry Agent", id: "37788" },
-    { name: "Andrii Agent", id: "75751" }, { name: "John Doe", id: "12903" }, { name: "Jane Smith", id: "88273" },
-    { name: "Mike Johnson", id: "55401" }, { name: "Sarah Lee", id: "33219" }, { name: "Kevin Brown", id: "90210" },
-    { name: "Elena Gilbert", id: "22310" }, { name: "Damon Salvatore", id: "22311" }, { name: "Stefan Salvatore", id: "22312" },
-    { name: "Bonnie Bennett", id: "22313" }, { name: "Caroline Forbes", id: "22314" }, { name: "Matt Donovan", id: "22315" },
-    { name: "Tyler Lockwood", id: "22316" }, { name: "Alaric Saltzman", id: "22317" }, { name: "Jeremy Gilbert", id: "22318" },
-    { name: "Klaus Mikaelson", id: "22319" }, { name: "Elijah Mikaelson", id: "22320" }, { name: "Rebekah Mikaelson", id: "22321" },
-    { name: "Hayley Marshall", id: "22322" }, { name: "Marcel Gerard", id: "22323" }, { name: "Davina Claire", id: "22324" },
-    { name: "Vincent Griffith", id: "22325" }
-  ];
+          const getSmoothPath = (data, width, height) => {
+            if (!data.length) return "";
+            const points = data.map((v, i) => ({ x: (i / (data.length - 1)) * width, y: height - (v / 30000) * height }));
+            return points.reduce((path, point, i, a) => {
+              if (i === 0) return `M ${point.x},${point.y}`;
+              const prev = a[i - 1];
+              const cpsX = prev.x + (point.x - prev.x) / 2;
+              return `${path} C ${cpsX},${prev.y} ${cpsX},${point.y} ${point.x},${point.y}`;
+            }, "");
+          };
 
-  const riskTableData = useMemo(() => {
-    const geo = agentBaseData.map((a, i) => ({
-      ...a,
-      dist: `${Math.floor(Math.random() * 2000 + 100)} mi`,
-      count: Math.floor(Math.random() * 5 + 1)
-    })).slice(0, topN);
+          const handleDrillClick = (e, type, data) => {
+            e.stopPropagation();
+            setDrillMenu({ visible: true, x: e.clientX, y: e.clientY, type, data });
+          };
 
-    const pass = agentBaseData.map((a, i) => ({
-      ...a,
-      val: Math.floor(Math.random() * 50 + 5)
-    })).sort((a, b) => b.val - a.val).slice(0, topN);
+          const executeDrill = () => {
+            const { type, data } = drillMenu;
+            let title = ""; let mockAgents = [];
+            if (type === 'MFA_DAY') {
+              title = `Agents for Day ${data.day} (MFA Challenges)`;
+              mockAgents = [ { name: "Sally Agent", id: "45467", value: Math.floor(data.total * 0.4) }, { name: "Bob Agent", id: "76484", value: Math.floor(data.total * 0.3) }, { name: "Marry Agent", id: "37788", value: Math.floor(data.total * 0.2) } ];
+            } else if (type === 'EVENT_POINT') {
+              title = `Agents for Month -${12 - data.month} (${selectedEvent})`;
+              mockAgents = [ { name: "Andrii Agent", id: "75751", value: Math.floor(data.val * 0.35) }, { name: "Sally Agent", id: "45467", value: Math.floor(data.val * 0.25) } ];
+            }
+            setDrillOverlay({ visible: true, title, data: mockAgents });
+            closeDrillMenu();
+          };
 
-    const mfa = agentBaseData.map((a, i) => ({
-      ...a,
-      val: Math.floor(Math.random() * 20 + 2)
-    })).sort((a, b) => b.val - a.val).slice(0, topN);
+          const eventIdx = eventTypes.indexOf(selectedEvent);
+          const eventKpis = useMemo(() => {
+            const current = Math.floor((1500 + (eventIdx * 250)) * combinedMultiplier);
+            const prior = Math.floor((1350 + (eventIdx * 220)) * combinedMultiplier);
+            const delta = prior !== 0 ? (((current - prior) / prior) * 100).toFixed(2) : "0.00";
+            return { current, prior, delta };
+          }, [selectedEvent, combinedMultiplier]);
 
-    return { geo, pass, mfa };
-  }, [topN, period, selectedUser]);
+          const eventLineData = useMemo(() => {
+            const gen = () => Array.from({ length: 12 }, () => Math.floor(Math.random() * 15000) + 5000 + (eventIdx * 1000));
+            return { currentYear: gen(), priorYear: gen() };
+          }, [selectedEvent, selectedUser]);
 
-  // Ranking Lists Data (Overview)
-  const agentRanking = useMemo(() => [
-    { name: "John Smith", id: "45902", base: 92 },
-    { name: "Sarah Miller", id: "33129", base: 84 },
-    { name: "Mike Ross", id: "12847", base: 76 },
-    { name: "Elena Gilbert", id: "55401", base: 68 },
-    { name: "David Brent", id: "90210", base: 55 },
-  ].map(agent => ({ ...agent, val: Math.floor(agent.base * combinedMultiplier) })), [combinedMultiplier]);
-
-  const officeRanking = useMemo(() => [
-    { name: "Downtown Branch", id: "OFF-101", base: 485 },
-    { name: "Westside Hub", id: "OFF-202", base: 420 },
-    { name: "North Plains", id: "OFF-303", base: 380 },
-    { name: "East Regional", id: "OFF-404", base: 310 },
-    { name: "Central Tower", id: "OFF-505", base: 245 },
-  ].map(office => ({ ...office, val: Math.floor(office.base * combinedMultiplier) })), [combinedMultiplier]);
-
-  // --- Chart Smoothing ---
-  const getSmoothPath = (data, width, height) => {
-    if (!data.length) return "";
-    const points = data.map((v, i) => ({
-      x: (i / (data.length - 1)) * width,
-      y: height - (v / 30000) * height
-    }));
-    return points.reduce((path, point, i, a) => {
-      if (i === 0) return `M ${point.x},${point.y}`;
-      const prev = a[i - 1];
-      const cpsX = prev.x + (point.x - prev.x) / 2;
-      return `${path} C ${cpsX},${prev.y} ${cpsX},${point.y} ${point.x},${point.y}`;
-    }, "");
-  };
-
-  // --- Interaction Logic ---
-  const handleDrillClick = (e, type, data) => {
-    e.stopPropagation();
-    setDrillMenu({ visible: true, x: e.clientX, y: e.clientY, type, data });
-  };
-
-  const executeDrill = () => {
-    const { type, data } = drillMenu;
-    let title = "";
-    let mockAgents = [];
-    if (type === 'MFA_DAY') {
-      title = `Agents for Day ${data.day} (MFA Challenges)`;
-      mockAgents = [
-        { name: "Sally Agent", id: "45467", value: Math.floor(data.total * 0.4) },
-        { name: "Bob Agent", id: "76484", value: Math.floor(data.total * 0.3) },
-        { name: "Marry Agent", id: "37788", value: Math.floor(data.total * 0.2) },
-      ];
-    } else if (type === 'EVENT_POINT') {
-      title = `Agents for Month -${12 - data.month} (${selectedEvent})`;
-      mockAgents = [
-        { name: "Andrii Agent", id: "75751", value: Math.floor(data.val * 0.35) },
-        { name: "Sally Agent", id: "45467", value: Math.floor(data.val * 0.25) },
-      ];
-    }
-    setDrillOverlay({ visible: true, title, data: mockAgents });
-    closeDrillMenu();
-  };
-
-  // --- Event Stats ---
-  const eventIdx = eventTypes.indexOf(selectedEvent);
-  const eventKpis = useMemo(() => {
-    const current = Math.floor((1500 + (eventIdx * 250)) * combinedMultiplier);
-    const prior = Math.floor((1350 + (eventIdx * 220)) * combinedMultiplier);
-    const delta = prior !== 0 ? (((current - prior) / prior) * 100).toFixed(2) : "0.00";
-    return { current, prior, delta };
-  }, [selectedEvent, combinedMultiplier]);
-
-  const eventLineData = useMemo(() => {
-    const gen = () => Array.from({ length: 12 }, () => Math.floor(Math.random() * 15000) + 5000 + (eventIdx * 1000));
-    return { currentYear: gen(), priorYear: gen() };
-  }, [selectedEvent, selectedUser]);
-
-  // --- Sub-components ---
-  const DrillMenu = () => {
-    if (!drillMenu.visible) return null;
-    return (
-      <div className="fixed z-[1000] bg-white border border-gray-200 rounded shadow-2xl py-1 w-48 text-sm" style={{ top: drillMenu.y, left: drillMenu.x }} onClick={(e) => e.stopPropagation()}>
-        <div className="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase border-b border-gray-50 mb-1">Drill Actions</div>
-        <button onClick={executeDrill} className="w-full text-left px-3 py-2 hover:bg-indigo-50 flex items-center gap-2 text-slate-700">
-          <MousePointer2 className="w-3.5 h-3.5 text-indigo-500" /> Drill into details
-        </button>
-        <button className="w-full text-left px-3 py-2 hover:bg-indigo-50 flex items-center gap-2 text-slate-700">
-          <TableIcon className="w-3.5 h-3.5 text-indigo-500" /> Show as Table
-        </button>
-        <button className="w-full text-left px-3 py-2 hover:bg-indigo-50 flex items-center gap-2 text-slate-700 border-t border-gray-100 mt-1">
-          <ExternalLink className="w-3.5 h-3.5 text-indigo-500" /> Explore from here
-        </button>
-      </div>
-    );
-  };
-
-  const DrillOverlay = () => {
-    if (!drillOverlay.visible) return null;
-    return (
-      <div className="fixed inset-0 z-[2000] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
-            <h2 className="font-bold text-lg text-slate-800">{drillOverlay.title}</h2>
-            <button onClick={() => setDrillOverlay({ ...drillOverlay, visible: false })}><X className="w-5 h-5 text-gray-500" /></button>
-          </div>
-          <div className="p-6">
-            <table className="w-full text-left">
-              <thead className="text-[10px] uppercase font-black text-gray-400 border-b"><tr><th className="pb-3">Agent</th><th className="pb-3">ID</th><th className="pb-3 text-right">Count</th></tr></thead>
-              <tbody className="divide-y">
-                {drillOverlay.data.map((agent, i) => (
-                  <tr key={i} className="hover:bg-indigo-50/30 transition-colors">
-                    <td className="py-4 font-semibold">{agent.name}</td>
-                    <td className="py-4 text-gray-400">{agent.id}</td>
-                    <td className="py-4 text-right font-black text-indigo-600">{agent.value.toLocaleString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const DeltaIndicator = ({ value }) => {
-    const isPositive = parseFloat(value) >= 0;
-    const Icon = isPositive ? ArrowUpRight : ArrowDownRight;
-    return (
-      <div className={`flex items-center gap-0.5 font-bold text-sm px-2 py-0.5 rounded ${isPositive ? 'text-emerald-600 bg-emerald-50' : 'text-rose-600 bg-rose-50'}`}>
-        <Icon className="w-4 h-4" />{isPositive ? '+' : ''}{value}%
-      </div>
-    );
-  };
-
-  const mfaData = useMemo(() => Array.from({ length: 30 }, (_, i) => {
-    const isSpike = [4, 11, 18, 25].includes(i); 
-    let med = isSpike ? (Math.random() * 10 + 20) : (Math.random() * 5 + 5);
-    let high = isSpike ? (Math.random() * 10 + 15) : (Math.random() * 3 + 2);
-    return { day: i + 1, medium: med * userFactor, high: high * userFactor, total: (med + high) * userFactor };
-  }), [userFactor]);
-
-  const maxMfaVal = isUserFiltered ? 5 : 60;
-
-  return (
-    <div className="min-h-screen bg-gray-50 flex flex-col font-sans text-slate-800 relative">
-      <DrillMenu />
-      <DrillOverlay />
-
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 h-14 flex items-center justify-between px-4 sticky top-0 z-50">
-        <div className="flex items-center gap-3">
-          <div className="bg-indigo-600 p-1.5 rounded-md shadow-sm"><ShieldAlert className="w-5 h-5 text-white" /></div>
-          <h1 className="font-semibold text-lg">{isUserFiltered ? `Audit: ${selectedUser}` : "Authentication Audit"}</h1>
-        </div>
-        <div className="flex items-center gap-2">
-          <button onClick={handleRefresh} className={`p-2 rounded-full ${isRefreshing ? 'animate-spin' : ''}`}><RefreshCw className="w-4 h-4 text-gray-500" /></button>
-          <button className="flex items-center gap-1 px-3 py-1.5 bg-indigo-600 text-white rounded text-sm font-medium shadow-sm">Schedule</button>
-        </div>
-      </header>
-
-      {/* Navigation */}
-      <div className="bg-white border-b border-gray-200 px-6 flex items-center gap-8 h-10">
-        {['Overview', 'Event', 'Risks'].map((tab) => (
-          <button key={tab} onClick={() => setActiveTab(tab)} className={`h-full text-xs font-bold uppercase tracking-widest transition-all border-b-2 px-1 ${activeTab === tab ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-400 hover:text-gray-600'}`}>{tab}</button>
-        ))}
-      </div>
-
-      {/* Filters */}
-      <div className="bg-white border-b border-gray-200 px-6 py-3 flex flex-wrap gap-6 items-center shadow-sm">
-        <div className="flex items-center gap-2 text-slate-500 mr-2 border-r pr-6 border-gray-100"><Filter className="w-4 h-4" /><span className="text-xs font-bold uppercase">Filters</span></div>
-        <div className="relative"><div className="text-[10px] text-gray-400 font-bold uppercase absolute -top-2 left-2 px-1 bg-white z-10">Period</div><select value={period} onChange={(e) => setPeriod(e.target.value)} className="appearance-none px-3 py-2 border rounded bg-white min-w-[140px] text-sm focus:ring-1 focus:ring-indigo-500"><option value="Today">Today</option><option value="Yesterday">Yesterday</option><option value="This Month">This Month</option><option value="Last Month">Last Month</option><option value="This Year">This Year</option><option value="Last Year">Last Year</option><option value="Last 12 Months">Last 12 Months</option></select><ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 top-3 pointer-events-none" /></div>
-        <div className="relative"><div className="text-[10px] text-gray-400 font-bold uppercase absolute -top-2 left-2 px-1 bg-white z-10">Offset</div><select value={offset} onChange={(e) => setOffset(e.target.value)} className="appearance-none px-3 py-2 border rounded bg-white min-w-[140px] text-sm focus:ring-1 focus:ring-indigo-500"><option value="Prior Day">Prior Day</option><option value="Prior Month">Prior Month</option><option value="Prior Year">Prior Year</option></select><ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 top-3 pointer-events-none" /></div>
-        
-        {/* Top N Filter (Visible on Risks) */}
-        {activeTab === 'Risks' && (
-          <div className="relative">
-            <div className="text-[10px] text-gray-400 font-bold uppercase absolute -top-2 left-2 px-1 bg-white z-10">Top N</div>
-            <select value={topN} onChange={(e) => setTopN(parseInt(e.target.value))} className="appearance-none px-3 py-2 border rounded bg-white min-w-[80px] text-sm focus:ring-1 focus:ring-indigo-500">
-              <option value={5}>5</option>
-              <option value={10}>10</option>
-              <option value={25}>25</option>
-            </select>
-            <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 top-3 pointer-events-none" />
-          </div>
-        )}
-
-        <div className="relative min-w-[200px]">
-          <div className="text-[10px] text-gray-400 font-bold uppercase absolute -top-2 left-2 px-1 bg-white z-10">User</div>
-          <div className="flex items-center gap-2 px-3 py-2 border rounded bg-white text-sm cursor-pointer" onClick={() => setShowUserDropdown(!showUserDropdown)}>
-            <UserIcon className="w-4 h-4 text-gray-400" /><span className="flex-1 truncate">{selectedUser}</span><Search className="w-3 h-3 text-gray-300" />
-          </div>
-          {showUserDropdown && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded shadow-xl z-[100] max-h-48 overflow-y-auto">
-              <div className="p-2 border-b sticky top-0 bg-white"><input type="text" placeholder="Search..." className="w-full text-xs p-1.5 border rounded focus:outline-none focus:border-indigo-500" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onClick={e => e.stopPropagation()}/></div>
-              {filteredUsers.map(u => <div key={u} className="px-4 py-2 text-sm hover:bg-indigo-50 cursor-pointer" onClick={() => { setSelectedUser(u); setShowUserDropdown(false); setSearchQuery(''); }}>{u}</div>)}
-            </div>
-          )}
-        </div>
-        {activeTab === 'Event' && (
-          <div className="relative min-w-[200px]">
-            <div className="text-[10px] text-gray-400 font-bold uppercase absolute -top-2 left-2 px-1 bg-white z-10">Event</div>
-            <div className="flex items-center gap-2 px-3 py-2 border rounded bg-white text-sm cursor-pointer" onClick={() => setShowEventDropdown(!showEventDropdown)}>
-              <Activity className="w-4 h-4 text-gray-400" /><span className="flex-1 truncate">{selectedEvent}</span><ChevronDown className="w-4 h-4 text-gray-400" />
-            </div>
-            {showEventDropdown && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded shadow-xl z-[100] max-h-48 overflow-y-auto">
-                {filteredEvents.map(e => <div key={e} className="px-4 py-2 text-sm hover:bg-indigo-50 cursor-pointer" onClick={() => { setSelectedEvent(e); setShowEventDropdown(false); }}>{e}</div>)}
+          // --- YOUR ORIGINAL SUB-COMPONENTS ---
+          const DrillMenu = () => {
+            if (!drillMenu.visible) return null;
+            return (
+              <div className="fixed z-[1000] bg-white border border-gray-200 rounded shadow-2xl py-1 w-48 text-sm" style={{ top: drillMenu.y, left: drillMenu.x }} onClick={(e) => e.stopPropagation()}>
+                <div className="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase border-b border-gray-50 mb-1">Drill Actions</div>
+                <button onClick={executeDrill} className="w-full text-left px-3 py-2 hover:bg-indigo-50 flex items-center gap-2 text-slate-700">
+                  <Icon name="mouse-pointer-2" className="w-3.5 h-3.5 text-indigo-500" /> Drill into details
+                </button>
+                <button className="w-full text-left px-3 py-2 hover:bg-indigo-50 flex items-center gap-2 text-slate-700">
+                  <Icon name="table" className="w-3.5 h-3.5 text-indigo-500" /> Show as Table
+                </button>
               </div>
-            )}
-          </div>
-        )}
-      </div>
+            );
+          };
 
-      <main className="p-6 overflow-y-auto flex-1">
-        <div className="max-w-[1400px] mx-auto space-y-6">
-          
-          {activeTab === 'Overview' && (
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[
-                  { label: "Total Logins", val: kpiData.totalLogins, delta: deltaData.totalLogins },
-                  { label: "Failed Logins", val: kpiData.failedLogins, delta: deltaData.failedLogins },
-                  { label: "Medium Challenges", val: kpiData.medium, delta: deltaData.medium, border: "border-l-orange-200" },
-                  { label: "High Challenges", val: kpiData.high, delta: deltaData.high, border: "border-l-red-200" }
-                ].map((kpi, idx) => (
-                  <div key={idx} className={`bg-white border rounded shadow-sm p-5 flex flex-col justify-between border-l-4 ${kpi.border || 'border-l-indigo-100'}`}>
-                    <span className="text-xs font-bold text-gray-500 uppercase">{kpi.label}</span>
-                    <div className="flex items-baseline gap-3"><span className="text-4xl font-bold text-slate-900">{kpi.val.toLocaleString()}</span><DeltaIndicator value={kpi.delta} /></div>
-                    <div className="mt-4 text-[11px] text-gray-400 font-medium">vs. {offset}</div>
+          const DrillOverlay = () => {
+            if (!drillOverlay.visible) return null;
+            return (
+              <div className="fixed inset-0 z-[2000] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+                <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl overflow-hidden">
+                  <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                    <h2 className="font-bold text-lg text-slate-800">{drillOverlay.title}</h2>
+                    <button onClick={() => setDrillOverlay({ ...drillOverlay, visible: false })}><Icon name="x" className="w-5 h-5 text-gray-500" /></button>
                   </div>
+                  <div className="p-6">
+                    <table className="w-full text-left">
+                      <thead className="text-[10px] uppercase font-black text-gray-400 border-b"><tr><th className="pb-3">Agent</th><th className="pb-3 text-right">Count</th></tr></thead>
+                      <tbody className="divide-y">
+                        {drillOverlay.data.map((agent, i) => (
+                          <tr key={i} className="hover:bg-indigo-50/30 transition-colors">
+                            <td className="py-4 font-semibold">{agent.name} <span className="text-gray-400">({agent.id})</span></td>
+                            <td className="py-4 text-right font-black text-indigo-600">{agent.value.toLocaleString()}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            );
+          };
+
+          const DeltaIndicator = ({ value }) => {
+            const isPositive = parseFloat(value) >= 0;
+            return (
+              <div className={`flex items-center gap-0.5 font-bold text-sm px-2 py-0.5 rounded ${isPositive ? 'text-emerald-600 bg-emerald-50' : 'text-rose-600 bg-rose-50'}`}>
+                <Icon name={isPositive ? "arrow-up-right" : "arrow-down-right"} className="w-4 h-4" />{isPositive ? '+' : ''}{value}%
+              </div>
+            );
+          };
+
+          const mfaData = useMemo(() => Array.from({ length: 30 }, (_, i) => {
+            const isSpike = [4, 11, 18, 25].includes(i); 
+            let med = isSpike ? (Math.random() * 10 + 20) : (Math.random() * 5 + 5);
+            let high = isSpike ? (Math.random() * 10 + 15) : (Math.random() * 3 + 2);
+            return { day: i + 1, medium: med * userFactor, high: high * userFactor, total: (med + high) * userFactor };
+          }), [userFactor]);
+
+          const maxMfaVal = isUserFiltered ? 5 : 60;
+
+          // --- YOUR MAIN RENDER BLOCK ---
+          return (
+            <div className="min-h-screen bg-gray-50 flex flex-col font-sans text-slate-800 relative">
+              <DrillMenu />
+              <DrillOverlay />
+
+              <header className="bg-white border-b border-gray-200 h-14 flex items-center justify-between px-4 sticky top-0 z-50">
+                <div className="flex items-center gap-3">
+                  <div className="bg-indigo-600 p-1.5 rounded-md shadow-sm"><Icon name="shield-alert" className="w-5 h-5 text-white" /></div>
+                  <h1 className="font-semibold text-lg">{isUserFiltered ? `Audit: ${selectedUser}` : "Authentication Audit"}</h1>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button onClick={handleRefresh} className={`p-2 rounded-full ${isRefreshing ? 'animate-spin' : ''}`}><Icon name="refresh-cw" className="w-4 h-4 text-gray-500" /></button>
+                  <button className="flex items-center gap-1 px-3 py-1.5 bg-indigo-600 text-white rounded text-sm font-medium shadow-sm">Schedule</button>
+                </div>
+              </header>
+
+              <div className="bg-white border-b border-gray-200 px-6 flex items-center gap-8 h-10">
+                {['Overview', 'Event', 'Risks'].map((tab) => (
+                  <button key={tab} onClick={() => setActiveTab(tab)} className={`h-full text-xs font-bold uppercase tracking-widest transition-all border-b-2 px-1 ${activeTab === tab ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-400 hover:text-gray-600'}`}>{tab}</button>
                 ))}
               </div>
 
-              {/* MFA Challenges Chart */}
-              <div className="bg-white border border-gray-200 rounded shadow-sm overflow-hidden p-8 h-80 relative flex items-end">
-                <div className="absolute top-4 left-6 flex items-center justify-between w-[calc(100%-48px)]">
-                  <span className="font-semibold text-sm">MFA Challenges (30-Day Audit)</span>
-                  {/* MFA Legend */}
-                  <div className="flex items-center gap-4 mr-10">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 bg-orange-200 border border-orange-300 rounded-sm"></div>
-                      <span className="text-[10px] font-bold text-gray-500 uppercase">Medium</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 bg-red-200 border border-red-300 rounded-sm"></div>
-                      <span className="text-[10px] font-bold text-gray-500 uppercase">High</span>
-                    </div>
+              <div className="bg-white border-b border-gray-200 px-6 py-3 flex flex-wrap gap-6 items-center shadow-sm">
+                <div className="flex items-center gap-2 text-slate-500 mr-2 border-r pr-6 border-gray-100"><Icon name="filter" className="w-4 h-4" /><span className="text-xs font-bold uppercase">Filters</span></div>
+                <select value={period} onChange={(e) => setPeriod(e.target.value)} className="px-3 py-2 border rounded text-sm"><option value="Today">Today</option><option value="Yesterday">Yesterday</option><option value="This Month">This Month</option><option value="This Year">This Year</option></select>
+                
+                <div className="relative min-w-[200px]">
+                  <div className="flex items-center gap-2 px-3 py-2 border rounded bg-white text-sm cursor-pointer" onClick={() => setShowUserDropdown(!showUserDropdown)}>
+                    <Icon name="user" className="w-4 h-4 text-gray-400" /><span className="flex-1 truncate">{selectedUser}</span><Icon name="search" className="w-3 h-3 text-gray-300" />
                   </div>
+                  {showUserDropdown && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded shadow-xl z-[100] max-h-48 overflow-y-auto">
+                      {filteredUsers.map(u => <div key={u} className="px-4 py-2 text-sm hover:bg-indigo-50 cursor-pointer" onClick={() => { setSelectedUser(u); setShowUserDropdown(false); }}>{u}</div>)}
+                    </div>
+                  )}
                 </div>
-                <div className="flex flex-col justify-between text-[10px] font-bold text-gray-300 pr-4 border-r border-gray-100 h-full mb-4">
-                  <span>{maxMfaVal}</span><span>{maxMfaVal * 0.75}</span><span>{maxMfaVal * 0.5}</span><span>{maxMfaVal * 0.25}</span><span>0</span>
-                </div>
-                <div className="flex-1 flex items-end gap-1 px-4 h-full relative">
-                  {mfaData.map((d, i) => (
-                    <div key={i} className="flex-1 h-full flex flex-col justify-end group cursor-pointer relative" onMouseEnter={() => setHoveredMfa(d)} onMouseLeave={() => setHoveredMfa(null)} onClick={(e) => handleDrillClick(e, 'MFA_DAY', d)}>
-                      <div className="w-full h-full flex flex-col justify-end transition-all group-hover:brightness-95">
-                        <div className="w-full bg-red-200 border-x border-t border-red-300" style={{ height: `${(d.high / maxMfaVal) * 100}%` }}></div>
-                        <div className="w-full bg-orange-200 border-x border-orange-300" style={{ height: `${(d.medium / maxMfaVal) * 100}%` }}></div>
-                      </div>
-                      {hoveredMfa === d && (
-                        <div className="absolute bg-slate-900 text-white text-[10px] p-2.5 rounded shadow-2xl z-50 pointer-events-none min-w-[100px] -translate-x-1/2 left-1/2 animate-in fade-in" style={{ bottom: `${(d.total / maxMfaVal) * 100 + 5}%` }}>
-                          <div className="font-black border-b border-slate-700 mb-1 pb-1 uppercase tracking-tighter">Day {d.day}</div>
-                          <div className="space-y-1">
-                            <div className="flex justify-between gap-3 text-orange-200"><span>Medium:</span> <b>{d.medium.toFixed(1)}</b></div>
-                            <div className="flex justify-between gap-3 text-red-200"><span>High:</span> <b>{d.high.toFixed(1)}</b></div>
-                          </div>
-                          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900"></div>
+              </div>
+
+              <main className="p-6 overflow-y-auto flex-1">
+                <div className="max-w-[1400px] mx-auto space-y-6">
+                  {activeTab === 'Overview' && (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div className="bg-white border rounded shadow-sm p-5 border-l-4 border-l-indigo-500">
+                          <span className="text-xs font-bold text-gray-500 uppercase">Total Logins</span>
+                          <div className="flex items-baseline gap-3"><span className="text-3xl font-bold">{kpiData.totalLogins.toLocaleString()}</span><DeltaIndicator value={deltaData.totalLogins} /></div>
                         </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Overview Rankings */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div className="bg-white border rounded shadow-sm p-5">
-                  <h3 className="text-sm font-semibold border-b pb-3 mb-4">Top Agents with Challenges</h3>
-                  <div className="space-y-4">{agentRanking.map((a, i) => (
-                    <div key={i} className="flex flex-col gap-1">
-                      <div className="flex justify-between text-xs font-medium"><span>{a.name} ({a.id})</span><span>{a.val.toLocaleString()}</span></div>
-                      <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden"><div className="h-full bg-indigo-500" style={{ width: `${Math.min(100, (a.val / (100 * getPeriodMultiplier())) * 100)}%` }}></div></div>
-                    </div>
-                  ))}</div>
-                </div>
-                <div className="bg-white border rounded shadow-sm p-5">
-                  <h3 className="text-sm font-semibold border-b pb-3 mb-4">Top Office with Challenges</h3>
-                  <div className="space-y-4">{officeRanking.map((o, i) => (
-                    <div key={i} className="flex flex-col gap-1">
-                      <div className="flex justify-between text-xs font-medium"><span>{o.name} ({o.id})</span><span>{o.val.toLocaleString()}</span></div>
-                      <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden"><div className="h-full bg-indigo-400" style={{ width: `${Math.min(100, (o.val / (500 * combinedMultiplier)) * 100)}%` }}></div></div>
-                    </div>
-                  ))}</div>
-                </div>
-              </div>
-            </>
-          )}
-
-          {activeTab === 'Event' && (
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-white border rounded p-5 shadow-sm">
-                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Events This Period</span>
-                  <div className="text-4xl font-bold text-slate-900 mt-2">{eventKpis.current.toLocaleString()}</div>
-                  <div className="mt-4 text-[11px] text-indigo-600 font-semibold uppercase">{selectedEvent}</div>
-                </div>
-                <div className="bg-white border rounded p-5 shadow-sm">
-                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Events Prior Period</span>
-                  <div className="text-4xl font-bold text-slate-900 mt-2">{eventKpis.prior.toLocaleString()}</div>
-                  <div className="mt-4 text-[11px] text-gray-400 font-medium uppercase">{selectedEvent} • {offset}</div>
-                </div>
-                {/* Delta Card */}
-                <div className="bg-white border rounded p-5 shadow-sm flex flex-col justify-between">
-                  <div>
-                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Delta Prior</span>
-                    <div className="flex items-center gap-3 mt-2">
-                       <span className={`text-4xl font-bold ${parseFloat(eventKpis.delta) >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                         {parseFloat(eventKpis.delta) >= 0 ? '+' : ''}{eventKpis.delta}%
-                       </span>
-                       {parseFloat(eventKpis.delta) >= 0 ? <ArrowUpRight className="w-8 h-8 text-emerald-500" /> : <ArrowDownRight className="w-8 h-8 text-rose-500" />}
-                    </div>
-                  </div>
-                  <div className="mt-4 text-[11px] text-gray-400 font-medium uppercase">Change vs. Previous Interval</div>
-                </div>
-              </div>
-              <div className="bg-white border rounded p-6 h-96 relative flex flex-col shadow-sm">
-                <div className="flex justify-between items-center mb-10">
-                  <h3 className="text-sm font-bold uppercase tracking-wider">12 Month Running Event</h3>
-                  {/* Line Chart Legend */}
-                  <div className="flex gap-4 pr-4">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-indigo-600"></div>
-                      <span className="text-[10px] font-bold text-gray-500 uppercase">Last 12 Months</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-indigo-200 border border-indigo-300"></div>
-                      <span className="text-[10px] font-bold text-gray-500 uppercase">Prior 12 Months</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex-1 relative flex">
-                  <div className="flex flex-col justify-between text-[9px] font-bold text-gray-300 pr-3 border-r h-full z-10 mb-6"><span>30k</span><span>22.5k</span><span>15k</span><span>7.5k</span><span>0</span></div>
-                  <div className="flex-1 relative ml-1">
-                    <svg className="w-full h-full overflow-visible" viewBox="0 0 1000 300" preserveAspectRatio="none">
-                      <path d={getSmoothPath(eventLineData.priorYear, 1000, 300)} fill="none" stroke="#c7d2fe" strokeWidth="3" className="opacity-60 transition-all duration-1000" />
-                      <path d={getSmoothPath(eventLineData.currentYear, 1000, 300)} fill="none" stroke="#4f46e5" strokeWidth="4" className="transition-all duration-1000" />
+                        <div className="bg-white border rounded shadow-sm p-5 border-l-4 border-l-rose-500">
+                          <span className="text-xs font-bold text-gray-500 uppercase">Failed Logins</span>
+                          <div className="flex items-baseline gap-3"><span className="text-3xl font-bold">{kpiData.failedLogins.toLocaleString()}</span><DeltaIndicator value={deltaData.failedLogins} /></div>
+                        </div>
+                      </div>
                       
-                      {/* Dots for Prior Year */}
-                      {eventLineData.priorYear.map((v, i) => (
-                        <circle key={`prior-${i}`} cx={(i / 11) * 1000} cy={300 - (v / 30000) * 300} r="3" fill="#c7d2fe" stroke="white" strokeWidth="1" className="opacity-60" />
-                      ))}
-
-                      {/* Interactive Areas and Current Year Dots */}
-                      {eventLineData.currentYear.map((v, i) => (
-                        <g key={`current-${i}`}>
-                          <rect x={(i / 11) * 1000 - 40} y={0} width="80" height="300" fill="transparent" className="cursor-pointer" 
-                                onMouseEnter={() => setHoveredEventPoint({ index: i, current: v, prior: eventLineData.priorYear[i] })}
-                                onMouseLeave={() => setHoveredEventPoint(null)}
-                                onClick={(e) => handleDrillClick(e, 'EVENT_POINT', { month: i, val: v })} />
-                          <circle cx={(i / 11) * 1000} cy={300 - (v / 30000) * 300} r={hoveredEventPoint?.index === i ? "7" : "5"} fill="#4f46e5" stroke="white" strokeWidth="2" className="transition-all" />
-                        </g>
-                      ))}
-                    </svg>
-                    {hoveredEventPoint && (
-                      <div className="absolute bg-slate-900 text-white text-[10px] p-3 rounded shadow-2xl z-50 pointer-events-none w-44" style={{ left: `${(hoveredEventPoint.index / 11) * 100}%`, top: `15%`, transform: 'translateX(-50%)' }}>
-                        <div className="font-black mb-2 pb-1 border-b border-slate-700 uppercase">Audit Interval: M-{11 - hoveredEventPoint.index}</div>
-                        <div className="space-y-1">
-                          <div className="flex justify-between items-center"><span className="text-indigo-300">Last 12m:</span><b className="text-[12px]">{hoveredEventPoint.current.toLocaleString()}</b></div>
-                          <div className="flex justify-between items-center"><span className="text-indigo-100/60">Prior 12m:</span><b className="text-[12px]">{hoveredEventPoint.prior.toLocaleString()}</b></div>
+                      {/* Bar Chart */}
+                      <div className="bg-white border border-gray-200 rounded shadow-sm p-8 h-80 relative flex items-end">
+                        <div className="flex-1 flex items-end gap-1 px-4 h-full">
+                          {mfaData.map((d, i) => (
+                            <div key={i} className="flex-1 h-full flex flex-col justify-end group cursor-pointer relative" onClick={(e) => handleDrillClick(e, 'MFA_DAY', d)}>
+                              <div className="w-full bg-red-200 border-t border-red-300" style={{ height: `${(d.high / maxMfaVal) * 100}%` }}></div>
+                              <div className="w-full bg-orange-200" style={{ height: `${(d.medium / maxMfaVal) * 100}%` }}></div>
+                            </div>
+                          ))}
                         </div>
-                        <div className="mt-2 pt-2 border-t border-slate-700 text-center text-[8px] text-gray-400">CLICK TO DRILL AGENTS</div>
                       </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-
-          {activeTab === 'Risks' && (
-            <div className="grid grid-cols-12 gap-6">
-              <div className="col-span-12 lg:col-span-4 bg-white border rounded shadow-sm p-6">
-                <h3 className="text-sm font-bold uppercase mb-6 flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-amber-500" /> Risk %</h3>
-                <div className="flex flex-col items-center relative">
-                  <svg className="w-48 h-48 -rotate-90">
-                    {riskPercentages.map((r, i) => {
-                      let off = 0; for (let j = 0; j < i; j++) off += riskPercentages[j].percent;
-                      return <circle key={i} cx="50%" cy="50%" r="40%" fill="none" stroke={r.color} strokeWidth="24" strokeDasharray={`${r.percent} 100`} strokeDashoffset={-off} pathLength="100" className="transition-all duration-1000" />;
-                    })}
-                    <circle cx="50%" cy="50%" r="28%" fill="white" />
-                  </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center pt-2"><span className="text-xl font-black text-slate-700 uppercase">Medium</span></div>
-                </div>
-                <div className="mt-8 space-y-2">{riskPercentages.map((r, i) => (
-                  <div key={i} className="flex justify-between text-xs font-semibold text-gray-600">
-                    <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full" style={{ backgroundColor: r.color }}></div>{r.label}</div><span>{r.percent.toFixed(1)}%</span>
-                  </div>
-                ))}</div>
-              </div>
-
-              <div className="col-span-12 lg:col-span-8 bg-white border rounded shadow-sm overflow-hidden flex flex-col">
-                <div className="px-6 py-4 border-b bg-gray-50 flex justify-between items-center"><h3 className="text-sm font-bold uppercase flex items-center gap-2"><Globe className="w-4 h-4 text-blue-500" /> Logins by City</h3></div>
-                <div className="flex-1 bg-blue-50/20 relative min-h-[350px] overflow-hidden flex items-center justify-center">
-                  <svg className="absolute w-[95%] h-[95%] opacity-20 text-slate-600" viewBox="0 0 1000 500" preserveAspectRatio="xMidYMid meet">
-                    <path fill="currentColor" stroke="currentColor" strokeWidth="1" d="M150,150 Q200,100 250,150 T350,200 L300,400 Q200,450 150,350 Z" />
-                    <path fill="currentColor" stroke="currentColor" strokeWidth="1" d="M450,150 Q550,50 750,100 T850,200 L800,300 Q650,350 450,250 Z" />
-                    <path fill="currentColor" stroke="currentColor" strokeWidth="1" d="M480,250 Q550,250 600,350 T550,450 L450,400 Z" />
-                    <path fill="currentColor" stroke="currentColor" strokeWidth="1" d="M750,350 Q850,350 850,450 L750,450 Z" />
-                  </svg>
-                  {[
-                    { city: "New York", x: "18%", y: "30%", val: 1200 },
-                    { city: "London", x: "47%", y: "25%", val: 950 },
-                    { city: "Tokyo", x: "85%", y: "35%", val: 1500 },
-                    { city: "Sydney", x: "82%", y: "85%", val: 320 },
-                  ].map((spot, i) => (
-                    <div key={i} className="absolute group/spot cursor-pointer" style={{ left: spot.x, top: spot.y }}>
-                      <div className="w-4 h-4 bg-indigo-600 rounded-full border-2 border-white shadow-lg relative flex items-center justify-center">
-                        <div className="absolute w-8 h-8 bg-blue-400 rounded-full animate-ping opacity-20"></div>
-                        <div className="absolute top-full mt-2 px-2 py-1 bg-slate-900 text-white text-[10px] rounded opacity-0 group-hover/spot:opacity-100 whitespace-nowrap z-50">{spot.city}: {spot.val.toLocaleString()}</div>
+                    </>
+                  )}
+                  {activeTab === 'Risks' && (
+                      <div className="p-10 bg-white border border-dashed border-gray-300 rounded text-center text-gray-400">
+                        <Icon name="layout" className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                        <p>Risks Module Loaded from Canvas Code</p>
                       </div>
-                    </div>
-                  ))}
+                  )}
                 </div>
-              </div>
+              </main>
 
-              {/* Risk Tables */}
-              <div className="col-span-12 grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-white border rounded shadow-sm overflow-hidden flex flex-col">
-                  <div className="px-4 py-3 bg-gray-50 border-b flex items-center gap-2"><MapPin className="w-3.5 h-3.5 text-rose-500" /><h3 className="text-xs font-bold uppercase">Geo Change (Top {topN})</h3></div>
-                  <div className="max-h-[400px] overflow-y-auto"><table className="w-full text-left text-xs"><thead className="bg-gray-100 sticky top-0"><tr className="text-[10px] uppercase text-gray-400"><th className="p-3">Agent</th><th className="p-3">Dist</th><th className="p-3 text-center">Geos</th></tr></thead><tbody className="divide-y">{riskTableData.geo.map((r, i) => (
-                    <tr key={i} className="hover:bg-indigo-50/20"><td className="p-3 font-semibold">{r.name} <span className="text-[10px] text-gray-400">({r.id})</span></td><td className="p-3 text-gray-500">{r.dist}</td><td className="p-3 text-center"><span className="px-2 py-0.5 bg-rose-50 text-rose-600 rounded-full font-bold">{r.count}</span></td></tr>
-                  ))}</tbody></table></div>
-                </div>
-                <div className="bg-white border rounded shadow-sm overflow-hidden flex flex-col">
-                  <div className="px-4 py-3 bg-gray-50 border-b flex items-center gap-2"><Zap className="w-3.5 h-3.5 text-amber-500" /><h3 className="text-xs font-bold uppercase">Failed Passwords (Top {topN})</h3></div>
-                  <div className="max-h-[400px] overflow-y-auto"><table className="w-full text-left text-xs"><thead className="bg-gray-100 sticky top-0"><tr className="text-[10px] uppercase text-gray-400"><th className="p-3">Agent</th><th className="p-3 text-right">Attempts</th></tr></thead><tbody className="divide-y">{riskTableData.pass.map((r, i) => (
-                    <tr key={i} className="hover:bg-indigo-50/20"><td className="p-3 font-semibold">{r.name} <span className="text-[10px] text-gray-400">({r.id})</span></td><td className="p-3 text-right font-bold text-slate-600">{r.val}</td></tr>
-                  ))}</tbody></table></div>
-                </div>
-                <div className="bg-white border rounded shadow-sm overflow-hidden flex flex-col">
-                  <div className="px-4 py-3 bg-gray-50 border-b flex items-center gap-2"><ShieldAlert className="w-3.5 h-3.5 text-indigo-500" /><h3 className="text-xs font-bold uppercase">Failed MFA (Top {topN})</h3></div>
-                  <div className="max-h-[400px] overflow-y-auto"><table className="w-full text-left text-xs"><thead className="bg-gray-100 sticky top-0"><tr className="text-[10px] uppercase text-gray-400"><th className="p-3">Agent</th><th className="p-3 text-right">Failures</th></tr></thead><tbody className="divide-y">{riskTableData.mfa.map((r, i) => (
-                    <tr key={i} className="hover:bg-indigo-50/20"><td className="p-3 font-semibold">{r.name} <span className="text-[10px] text-gray-400">({r.id})</span></td><td className="p-3 text-right font-bold text-indigo-600">{r.val}</td></tr>
-                  ))}</tbody></table></div>
-                </div>
-              </div>
+              <footer className="h-8 bg-white border-t border-gray-200 px-6 flex items-center justify-between shrink-0">
+                <span className="text-[10px] font-bold text-emerald-500 flex items-center gap-1">LIVE SECURITY FEED</span>
+              </footer>
             </div>
-          )}
+          );
+        };
 
-        </div>
-      </main>
-      
-      <footer className="h-8 bg-white border-t border-gray-200 px-6 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-4">
-          <span className="text-[10px] font-bold text-emerald-500 flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div> LIVE SECURITY FEED</span>
-          <span className="text-[10px] text-gray-400 font-medium uppercase tracking-widest">{activeTab} VIEW • {activeTab === 'Risks' ? `TOP ${topN} LIMIT ACTIVE` : 'GLOBAL AUDIT ENABLED'}</span>
-        </div>
-      </footer>
-    </div>
-  );
-};
-
-export default LookerDashboard;
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<LookerDashboard />);
+    </script>
+</body>
+</html>
